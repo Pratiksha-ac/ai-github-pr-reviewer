@@ -1,44 +1,28 @@
-from datetime import datetime
-
-
 class ReportGenerator:
 
     @staticmethod
-    def generate(reviews: dict) -> str:
+    def generate(reviews):
 
-        report = f"""# 🤖 AI GitHub PR Review
-
-Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
----
-
-## 🔍 Static Analysis
-
-{reviews["static"]}
-
----
-
-## 🔐 Security Review
+        return f"""
+### 🔒 Security
 
 {reviews["security"]}
 
 ---
 
-## 🏗 Architecture Review
+### 🏗️ Architecture
 
 {reviews["architecture"]}
 
 ---
 
-## 🎨 Code Style Review
+### ✨ Style
 
 {reviews["style"]}
 
 ---
 
-## ✅ Overall Summary
+### 🔍 Static Analysis
 
-This pull request has been reviewed by four specialized AI agents.
-
+{reviews["static"]}
 """
-        return report

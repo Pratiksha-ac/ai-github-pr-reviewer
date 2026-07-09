@@ -3,12 +3,14 @@ import os
 
 from app.agents.manager_agent import ReviewManager
 from app.github.pr_reader import PRReader
-from app.services.report_generator import ReportGenerator
 from app.github.commenter import PRCommenter
+from app.services.report_generator import ReportGenerator
 
 manager = ReviewManager()
 reader = PRReader()
 commenter = PRCommenter()
+
+MAX_RETRIES = 3
 
 
 async def main():
@@ -26,6 +28,8 @@ async def main():
         print("No changed files found.")
         return
 
+    all_reports = []
+
     for file in files:
 
         print(f"\nReviewing: {file['filename']}")
@@ -33,16 +37,59 @@ async def main():
         patch = file.get("patch")
 
         if not patch:
-            print("No patch available.")
+            print(f"Skipping {file['filename']} (No patch available)")
             continue
 
-        reviews = await manager.review(patch)
+        reviews = None
+
+        for attempt in range(MAX_RETRIES):
+
+            try:
+                reviews = await manager.review(patch)
+                break
+
+            except Exception as e:
+
+                print(
+                    f"Attempt {attempt + 1}/{MAX_RETRIES} failed for {file['filename']}"
+                )
+
+                print(e)
+
+                if attempt == MAX_RETRIES - 1:
+                    print(f"Skipping {file['filename']}")
+                    reviews = {
+                        "security": "❌ Review failed",
+                        "architecture": "❌ Review failed",
+                        "style": "❌ Review failed",
+                        "static": "❌ Review failed",
+                    }
+
+                else:
+                    await asyncio.sleep(5)
 
         report = ReportGenerator.generate(reviews)
 
-        commenter.post_comment(pr_number, report)
+        all_reports.append(
+            {
+                "filename": file["filename"],
+                "report": report,
+            }
+        )
 
-        print(f"Review posted successfully for {file['filename']}")
+    final_report = "# 🤖 AI Pull Request Review\n\n"
+
+    for item in all_reports:
+
+        final_report += f"## 📄 {item['filename']}\n\n"
+
+        final_report += item["report"]
+
+        final_report += "\n\n---\n\n"
+
+    commenter.post_comment(pr_number, final_report)
+
+    print("✅ Review posted successfully.")
 
 
 if __name__ == "__main__":
