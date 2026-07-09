@@ -4,9 +4,11 @@ import os
 from app.agents.manager_agent import ReviewManager
 from app.github.pr_reader import PRReader
 from app.services.report_generator import ReportGenerator
+from app.github.commenter import PRCommenter
 
 manager = ReviewManager()
 reader = PRReader()
+commenter = PRCommenter()
 
 
 async def main():
@@ -38,7 +40,9 @@ async def main():
 
         report = ReportGenerator.generate(reviews)
 
-        print(report)
+        commenter.post_comment(pr_number, report)
+
+        print(f"Review posted successfully for {file['filename']}")
 
 
 if __name__ == "__main__":
