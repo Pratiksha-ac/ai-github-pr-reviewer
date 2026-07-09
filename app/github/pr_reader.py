@@ -23,6 +23,7 @@ class PRReader:
                     "filename": file.filename,
                     "status": file.status,
                     "patch": file.patch,
+                    "sha": pr.head.sha,
                 }
             )
 
