@@ -1,29 +1,44 @@
 import asyncio
+import os
 
 from app.agents.manager_agent import ReviewManager
+from app.github.pr_reader import PRReader
 from app.services.report_generator import ReportGenerator
 
-sample_code = """
-def login(username,password):
-
-    query = "SELECT * FROM users WHERE username='" + username + "'"
-
-    if password == "admin123":
-        print("Logged In")
-
-    return True
-"""
-
 manager = ReviewManager()
+reader = PRReader()
 
 
 async def main():
 
-    reviews = await manager.review(sample_code)
+    pr_number = os.getenv("PR_NUMBER")
 
-    report = ReportGenerator.generate(reviews)
+    if not pr_number:
+        raise ValueError("PR_NUMBER environment variable not found.")
 
-    print(report)
+    pr_number = int(pr_number)
+
+    files = reader.get_changed_files(pr_number)
+
+    if not files:
+        print("No changed files found.")
+        return
+
+    for file in files:
+
+        print(f"\nReviewing: {file['filename']}")
+
+        patch = file.get("patch")
+
+        if not patch:
+            print("No patch available.")
+            continue
+
+        reviews = await manager.review(patch)
+
+        report = ReportGenerator.generate(reviews)
+
+        print(report)
 
 
 if __name__ == "__main__":
